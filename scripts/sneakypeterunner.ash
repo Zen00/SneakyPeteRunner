@@ -9,7 +9,7 @@
 
 
 script "Sneaky Pete Runner";
-since r16990;
+since r17020;
 
 
 /***********************************************\
@@ -73,16 +73,16 @@ void upgradeCycle()
 
 }
 
-void mcdMax()
+void grabBounties()
 {
-	if(current_mcd() < 10)
-		change_mcd(10);
+	visit_url("bounty.php?pwd&action=takelow");
+	visit_url("bounty.php?pwd&action=takehigh");
+	visit_url("bounty.php?pwd&action=takespecial");	
 }
 
-void mcdMin()
+void grabVacationQuests()
 {
-	if(current_mcd() > 0)
-		change_mcd(0);
+	
 }
 
 int handleBarrelFullOfBarrels()
@@ -120,6 +120,10 @@ void initializeDay()
 {
 	if((my_dayCount() == 1) && !get_property("pete_checkpointInitDay1").to_boolean())
 	{
+		cli_execute("ccs null");
+		cli_execute("mood apathetic");
+		grabBounties();
+		grabVacationQuests();
 		use(1, $item[astral six-pack]);
 		visit_url("clan_viplounge.php?preaction=buyfloundryitem&whichitem=9004");
 		visit_url("inv_use.php?pwd=&which=2&whichitem=9004");
@@ -144,23 +148,19 @@ void initializeDay()
 		cli_execute("/terminal enhance substats.enh");
 		cli_execute("/terminal enhance init.enh");
 		cli_execute("/terminal enquiry monsters.enq	");
-		getSkills();
 		handleBarrelFullOfBarrels();
+		getSkills();
 		upgradeCycle();
-		
+		maximize("exp", 0, 0, false);
 		set_property("pete_checkpointInitDay1", true);
 	}
-	
-	if(my_dayCount() == 2)
+	else if(my_dayCount() == 2)
 	{
 		
 		set_property("pete_checkpointInitDay2", true);
 	}
 }
 
-//set mood/ccs
-//Grab bounties
-//Name bike "Rocket Racer"
 //If you don't have skeletons, only allow 70 ML for events
 //Use hair spray (30) and rev engine buff (50) and Live fast (50), after skilling up and gearing up use 1 free rest for hp/mp, use a skeleton buddy
 //Now should have around 95 moxie, depending on RNG
@@ -209,6 +209,95 @@ void initializeDay()
 //day 2
 
 
+boolean L4_batCave()
+{
+	if(get_property("pete_bat") == "finished")
+	{
+		return false;
+	}
+	if(my_level() < 4)
+	{
+		return false;
+	}
+
+	print("In the bat hole!", "blue");
+	if(considerGrimstoneGolem(true))
+	{
+		handleBjornify($familiar[Grimstone Golem]);
+	}
+	buffMaintain($effect[Fishy Whiskers], 0, 1, 1);
+
+	int batStatus = internalQuestStatus("questL04Bat");
+	if((item_amount($item[sonar-in-a-biscuit]) > 0) && (batStatus < 3))
+	{
+		use(1, $item[sonar-in-a-biscuit]);
+		return true;
+	}
+
+	if(batStatus >= 4)
+	{
+		if((item_amount($item[enchanted bean]) == 0) && !get_property("cc_bean").to_boolean())
+		{
+			ccAdv(1, $location[The Beanbat Chamber]);
+			return true;
+		}
+		set_property("cc_bat", "finished");
+		council();
+		return true;
+	}
+	if(batStatus >= 3)
+	{
+		ccAdv(1, $location[The Boss Bat\'s Lair]);
+		return true;
+	}
+	if(batStatus >= 2)
+	{
+		if((item_amount($item[Enchanted Bean]) == 0) && !get_property("cc_bean").to_boolean())
+		{
+			ccAdv(1, $location[The Beanbat Chamber]);
+			return true;
+		}
+		ccAdv(1, $location[The Batrat and Ratbat Burrow]);
+		return true;
+	}
+	if(batStatus >= 1)
+	{
+		ccAdv(1, $location[The Batrat and Ratbat Burrow]);
+		return true;
+	}
+
+	buffMaintain($effect[Hide of Sobek], 10, 1, 1);
+	buffMaintain($effect[Astral Shell], 10, 1, 1);
+	buffMaintain($effect[Elemental Saucesphere], 10, 1, 1);
+	if(elemental_resist($element[stench]) < 1)
+	{
+		if(possessEquipment($item[Knob Goblin Harem Veil]))
+		{
+			equip($item[Knob Goblin Harem Veil]);
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	if((my_class() == $class[Ed]) && (item_amount($item[Disassembled Clover]) > 0) && (batStatus <= 1))
+	{
+		backupSetting("cloverProtectActive", false);
+		use(1, $item[Disassembled Clover]);
+		if(ccAdvBypass(31, $location[Guano Junction]))
+		{
+			print("Wandering monster interrupt at Guano Junction", "red");
+			restoreSetting("cloverProtectActive");
+			return true;
+		}
+		use(item_amount($item[ten-leaf clover]), $item[ten-leaf clover]);
+		restoreSetting("cloverProtectActive");
+		return true;
+	}
+	ccAdv(1, $location[Guano Junction]);
+	return true;
+}
 
 
 
@@ -244,7 +333,6 @@ void main()
 	doBedtime();
 	print("Done adventuring for today. Time to chillax!");
 }
-
 
 
 
